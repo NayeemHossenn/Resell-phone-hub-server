@@ -17,6 +17,23 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
+async function run() {
+  try {
+    const categoryCollection = client
+      .db("resalePhone")
+      .collection("categories");
+
+    app.get("/categories", async (req, res) => {
+      const query = {};
+      const cursor = categoryCollection.find(query);
+      const categories = await cursor.toArray();
+      res.send(categories);
+    });
+  } finally {
+  }
+}
+run().catch((err) => console.err(err));
+
 app.get("/", (resq, res) => {
   res.send("resale phone erver is running");
 });
