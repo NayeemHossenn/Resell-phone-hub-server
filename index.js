@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 
 const port = process.env.PORT || 5000;
@@ -22,6 +22,9 @@ async function run() {
     const categoryCollection = client
       .db("resalePhone")
       .collection("categories");
+    const categoryItemsCollection = client
+      .db("resalePhone")
+      .collection("products");
 
     app.get("/categories", async (req, res) => {
       const query = {};
@@ -29,12 +32,19 @@ async function run() {
       const categories = await cursor.toArray();
       res.send(categories);
     });
+    app.get("/category/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { category_id: id };
+      const products = await categoryItemsCollection.find(query).toArray();
+
+      res.send(products);
+    });
   } finally {
   }
 }
 run().catch((err) => console.err(err));
 
-app.get("/", (resq, res) => {
+app.get("/", (req, res) => {
   res.send("resale phone erver is running");
 });
 
