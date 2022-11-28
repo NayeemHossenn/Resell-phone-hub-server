@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const jwt = require("jsonwebtoken");
 const app = express();
 
 const port = process.env.PORT || 5000;
@@ -16,6 +17,14 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
+
+function jwtTokenVerify(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.send("access unauthorized");
+  }
+  const token = authHeader.split(" ")[1];
+}
 
 async function run() {
   try {
@@ -41,8 +50,9 @@ async function run() {
       res.send(products);
     });
 
-    app.get("/bookings", async (req, res) => {
+    app.get("/bookings", jwtTokenVerify, async (req, res) => {
       const email = req.query.email;
+      console.log("token", req.headers.authorization);
       console.log(email);
       const query = { email: email };
       const booking = await bookingCollection.find(query).toArray();
@@ -54,6 +64,20 @@ async function run() {
       console.log(bookings);
       const result = await bookingCollection.insertOne(bookings);
       res.send(result);
+    });
+
+    app.get("/jwt", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      if (user) {
+        const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, {
+          expiresIn: "7d",
+        });
+        return res.send({ accessToken: token });
+      }
+      console.log(user);
+      res.status(403).send({ accessToken: " " });
     });
 
     app.post("/users", async (req, res) => {
