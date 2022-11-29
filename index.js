@@ -21,9 +21,16 @@ const client = new MongoClient(uri, {
 function jwtTokenVerify(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
-    return res.send("access unauthorized");
+    return res.status(401).send("access unauthorized");
   }
   const token = authHeader.split(" ")[1];
+
+  jwt.verify(token, process.env.ACCESS_TOKEN, function (error, decoded) {
+    if (error) {
+      return res.status(403).send({ message: "access denied" });
+    }
+    req.decoded = decoded;
+  });
 }
 
 async function run() {
@@ -36,6 +43,9 @@ async function run() {
       .collection("products");
     const bookingCollection = client.db("resalePhone").collection("bookings");
     const userCollection = client.db("resalePhone").collection("users");
+    const productCollection = client
+      .db("resalePhone")
+      .collection("Newproducts");
 
     app.get("/categories", async (req, res) => {
       const query = {};
@@ -50,10 +60,9 @@ async function run() {
       res.send(products);
     });
 
-    app.get("/bookings", jwtTokenVerify, async (req, res) => {
+    app.get("/bookings", async (req, res) => {
       const email = req.query.email;
-      console.log("token", req.headers.authorization);
-      console.log(email);
+
       const query = { email: email };
       const booking = await bookingCollection.find(query).toArray();
       res.send(booking);
@@ -80,9 +89,46 @@ async function run() {
       res.status(403).send({ accessToken: " " });
     });
 
+    app.get("/users", async (req, res) => {
+      const query = {};
+      const allUsers = await userCollection.find(query).toArray();
+      res.send(allUsers);
+    });
+
+    app.get("/users/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await userCollection.findOne(query);
+      res.send({ isAdmin: user?.role === "admin" });
+    });
+
     app.post("/users", async (req, res) => {
       const user = req.body;
       const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
+
+    app.put("/users/admin/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          role: "admin",
+        },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc, options);
+      res.send(result);
+    });
+
+    app.post("/products", async (req, res) => {
+      const products = req.body;
+      const result = await productCollection.insertOne(products);
+      res.send(result);
+    });
+    app.get("/products", async (req, res) => {
+      const query = {};
+      const result = await productCollection.find(query).toArray();
       res.send(result);
     });
   } finally {
