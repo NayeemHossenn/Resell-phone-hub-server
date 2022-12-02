@@ -60,6 +60,15 @@ async function run() {
       res.send(products);
     });
 
+    app.get("/categoriesList", async (req, res) => {
+      const query = {};
+      const result = await categoryCollection
+        .find(query)
+        .project({ title: 1 })
+        .toArray();
+      res.send(result);
+    });
+
     app.get("/bookings", async (req, res) => {
       const email = req.query.email;
 
@@ -72,6 +81,13 @@ async function run() {
       const bookings = req.body;
       console.log(bookings);
       const result = await bookingCollection.insertOne(bookings);
+      res.send(result);
+    });
+
+    app.delete("/bookings/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await bookingCollection.deleteOne(filter);
       res.send(result);
     });
 
@@ -90,7 +106,8 @@ async function run() {
     });
 
     app.get("/users", async (req, res) => {
-      const query = {};
+      const role = req.query.role;
+      const query = { role };
       const allUsers = await userCollection.find(query).toArray();
       res.send(allUsers);
     });
@@ -101,10 +118,35 @@ async function run() {
       const user = await userCollection.findOne(query);
       res.send({ isAdmin: user?.role === "admin" });
     });
+    app.get("/users/seller/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await userCollection.findOne(query);
+      res.send({ isSeller: user?.role === "seller" });
+    });
+    app.get("/users/buyer/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await userCollection.findOne(query);
+      res.send({ isSeller: user?.role === "buyer" });
+    });
 
     app.post("/users", async (req, res) => {
       const user = req.body;
       const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
+
+    app.put("/users/buyer/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          role: "buyer",
+        },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc, options);
       res.send(result);
     });
 
@@ -120,12 +162,32 @@ async function run() {
       const result = await userCollection.updateOne(filter, updateDoc, options);
       res.send(result);
     });
+    app.put("/users/seller/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          role: "seller",
+        },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc, options);
+      res.send(result);
+    });
+
+    app.delete("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await userCollection.deleteOne(filter);
+      res.send(result);
+    });
 
     app.post("/products", async (req, res) => {
       const products = req.body;
       const result = await productCollection.insertOne(products);
       res.send(result);
     });
+
     app.get("/products", async (req, res) => {
       const query = {};
       const result = await productCollection.find(query).toArray();
