@@ -18,21 +18,6 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
-function jwtTokenVerify(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).send("access unauthorized");
-  }
-  const token = authHeader.split(" ")[1];
-
-  jwt.verify(token, process.env.ACCESS_TOKEN, function (error, decoded) {
-    if (error) {
-      return res.status(403).send({ message: "access denied" });
-    }
-    req.decoded = decoded;
-  });
-}
-
 async function run() {
   try {
     const categoryCollection = client
@@ -89,20 +74,6 @@ async function run() {
       const filter = { _id: ObjectId(id) };
       const result = await bookingCollection.deleteOne(filter);
       res.send(result);
-    });
-
-    app.get("/jwt", async (req, res) => {
-      const email = req.query.email;
-      const query = { email: email };
-      const user = await userCollection.findOne(query);
-      if (user) {
-        const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, {
-          expiresIn: "7d",
-        });
-        return res.send({ accessToken: token });
-      }
-      console.log(user);
-      res.status(403).send({ accessToken: " " });
     });
 
     app.get("/users", async (req, res) => {
